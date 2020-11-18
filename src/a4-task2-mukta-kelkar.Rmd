@@ -1,0 +1,66 @@
+---
+title: "a4-task2-mukta-kelkar"
+author: "Mukta Kelkar"
+date: "11/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(lubridate)
+```
+
+# Introduction
+
+[PLACEHOLDER TEXT]
+
+# Summary of Data and Analyses
+
+[PLACEHOLDER TEXT]
+
+```{r, include=FALSE}
+# Read in data
+bonanza_hares <- read.csv(here("data", "bonanza_hares.csv"))
+
+# Sort data by year
+bonanza_hares_year <- bonanza_hares %>% 
+  mutate(mdy(date)) %>% 
+  rename(date_form = "mdy(date)") %>% 
+  mutate(year = year(date_form))
+```
+
+# Exploratory Findings
+
+```{r}
+# Count the total number of juvenile (age == "j") hare trappings during each year of the study
+juvenilles_per_year <- bonanza_hares_year%>% 
+  count(age == "j", year)
+
+# Find summary statistics
+
+
+# Create a final visualization of counts by year
+ggplot(data = juvenilles_per_year, aes(x = year, y = n)) +
+  geom_col() +
+  labs(y = "Number of Juvenilles",
+       x = "Year",
+       title = "Number of juvenille bonanza hares per year") +
+  theme_minimal()
+
+
+```
+
+
+## Annual Juvenille Hare Trap Counts
+
+## Juvenille Hare Weights
+
+## Juvenille weight comparison by sex
+
+## Relationship between juvenile weight & hind foot length
+
+# Final Summary 
+
+# Citations
