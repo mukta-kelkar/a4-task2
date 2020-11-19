@@ -128,7 +128,30 @@ hare_effsize <- cohen.d(hare_f, hare_m)
 
 ```{r}
 j_weight_length <- juvenille_hares %>% 
-  
+  select(hindft, weight) %>% 
+  filter(!is.na(weight)) %>%
+  filter(!is.na(hindft))
+
+ggplot(data = j_weight_length, aes(x = hindft, y = weight)) +
+  geom_point(size = 2) +
+  geom_smooth(method = "lm",
+              color = "red",
+              size = 0.5,
+              fill = "gray10",
+              alpha = 0.5) +
+  labs(x = "Hind foot length (mm)",
+       y = "Weight",
+       title = "Relationship between weight and hind foot length in juvenille hares",
+       subtitle = "Bonanza Creek Experimental Forest: 1999 - Present",
+       caption = "Figure 4: ahhhhhhhhh") +
+  theme_bw() +
+  ggpubr::stat_regline_equation(label.x = 80, label.y = 1700)
+
+# Linear model, stored as j_hare_lm
+j_hare_lm <- lm(hindft ~ weight, data = j_weight_length)
+
+# Return the complete overview:
+summary(j_hare_lm)
 ```
 
 
