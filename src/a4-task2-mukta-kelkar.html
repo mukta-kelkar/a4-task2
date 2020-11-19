@@ -372,9 +372,23 @@ summary {
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
+<p>[PLACEHOLDER TEXT]</p>
 </div>
 <div id="summary-of-data-and-analyses" class="section level1">
 <h1>Summary of Data and Analyses</h1>
+<p>[PLACEHOLDER TEXT]</p>
+<pre class="r"><code># Read in data
+bonanza_hares &lt;- read.csv(here(&quot;data&quot;, &quot;bonanza_hares.csv&quot;))
+
+# Use filter function to chose only juvenille hares
+juvenille_hares &lt;- bonanza_hares %&gt;% 
+  filter(age == &quot;j&quot;)
+
+# Sort data by year
+hares_by_year &lt;- juvenille_hares %&gt;% 
+  mutate(mdy(date)) %&gt;% 
+  rename(date_form = &quot;mdy(date)&quot;) %&gt;% 
+  mutate(year = year(date_form))</code></pre>
 </div>
 <div id="exploratory-findings" class="section level1">
 <h1>Exploratory Findings</h1>

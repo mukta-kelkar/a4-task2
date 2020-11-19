@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 library(lubridate)
+library(kableExtra)
+library(effsize)
 ```
 
 # Introduction
@@ -20,12 +22,16 @@ library(lubridate)
 
 [PLACEHOLDER TEXT]
 
-```{r, include=FALSE}
+```{r, message=FALSE}
 # Read in data
 bonanza_hares <- read.csv(here("data", "bonanza_hares.csv"))
 
+# Use filter function to chose only juvenille hares
+juvenille_hares <- bonanza_hares %>% 
+  filter(age == "j")
+
 # Sort data by year
-bonanza_hares_year <- bonanza_hares %>% 
+hares_by_year <- juvenille_hares %>% 
   mutate(mdy(date)) %>% 
   rename(date_form = "mdy(date)") %>% 
   mutate(year = year(date_form))
@@ -33,33 +39,98 @@ bonanza_hares_year <- bonanza_hares %>%
 
 # Exploratory Findings
 
+## Annual Juvenille Hare Trap Counts
+
 ```{r}
 # Count the total number of juvenile (age == "j") hare trappings during each year of the study
-juvenilles_per_year <- bonanza_hares_year%>% 
-  count(age == "j", year)
+juvenilles_per_year <- hares_by_year %>% 
+  count(age, year)
 
 # Find summary statistics
-
+juvenille_summary <- juvenilles_per_year %>% 
+  #group_by(year) %>% 
+  summarise(
+    mean_count = mean(n),
+    median_count = median(n),
+  )
 
 # Create a final visualization of counts by year
 ggplot(data = juvenilles_per_year, aes(x = year, y = n)) +
   geom_col() +
   labs(y = "Number of Juvenilles",
        x = "Year",
-       title = "Number of juvenille bonanza hares per year") +
+       title = "Number of juvenille bonanza hares per year",
+       caption = "Figure 1: weeeee") +
   theme_minimal()
-
 
 ```
 
-
-## Annual Juvenille Hare Trap Counts
-
 ## Juvenille Hare Weights
+
+```{r, include=FALSE}
+# Create dataset that includes only variables age, sex, and site(grid)
+j_hare_weights <- juvenille_hares %>% 
+  select("grid", "sex", "age", "weight") %>% 
+  group_by(grid)
+
+ggplot(data = j_hare_weights, aes(x = sex, y = weight)) +
+  geom_boxplot(aes(color = grid)) +
+  labs(x = "Sex",
+       y = "Weight",
+       title = "Juvenille hare weights by gender",
+       caption = "Figure 2: woooooooo") +
+  theme_bw()
+
+summary(j_hare_weights)
+```
 
 ## Juvenille weight comparison by sex
 
+```{r}
+# Take out NAs
+j_hare_weights_clean <- j_hare_weights %>%
+  filter(!is.na(weight)) %>%
+  filter(!is.na(sex))
+
+#Create vectors for statistical tests
+hare_f <- j_hare_weights_clean %>%
+  filter(!is.na(sex)) %>%
+  filter(sex == "f") %>%
+  pull(weight)
+hare_m <- j_hare_weights_clean %>%
+  filter(!is.na(sex)) %>%
+  filter(sex == "m") %>%
+  pull(weight)
+
+# Create table of summary statistics
+hare_weight_table <- j_hare_weights_clean %>% 
+  group_by(sex) %>% 
+  summarize(
+    mean__weight = round(mean(weight, na.rm = TRUE),2),
+    sd_hares = round(sd(weight, na.rm = TRUE),2),
+    n = n()
+  )
+
+# Format table useing kalbeExtra
+hare_weight_table %>% 
+  kable(col.names = c("Sex", "Mean Weight", "Standard deviation", "Sample size")) %>% 
+  kable_styling(bootstrap_options = "striped", full_width = FALSE)
+
+# Run a t-test
+t.test(hare_f, hare_m)
+
+# Get the effect size: 
+hare_effsize <- cohen.d(hare_f, hare_m)
+```
+
+
 ## Relationship between juvenile weight & hind foot length
+
+```{r}
+j_weight_length <- juvenille_hares %>% 
+  
+```
+
 
 # Final Summary 
 
