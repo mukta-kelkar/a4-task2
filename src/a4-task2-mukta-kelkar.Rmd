@@ -77,12 +77,12 @@ Overall, it looks like the number of juvenile hares caught in traps has decrease
 
 ## Juvenile Hare Weights
 
-```{r, include=FALSE, warning=FALSE, message = FALSE}
+```{r wrangle data, include=FALSE, warning=FALSE, message = FALSE}
 # Create dataset that includes only variables age, sex, and site(grid)
 j_hare_weights <- juvenile_hares %>% 
   select("grid", "sex", "age", "weight") %>% 
   group_by(grid) %>% 
-  mutate(site_name = case_when(
+  mutate(site_name = case_when(      #create new column with more ckear site names
     grid == "bonrip" ~ "Bonanza Riparian",
   grid == "bonmat" ~ "Bonanza Mature",
   grid == "bonbs" ~ "Bonanza Black Spruce"
@@ -91,27 +91,30 @@ j_hare_weights <- juvenile_hares %>%
 # View summary of data
 summary(j_hare_weights)
 
-# Create a boxplot
+```
+
+```{r visualize data, echo = FALSE, message = FALSE, warning = FALSE, fig.align = "center"}
+# Create a final visualization
 ggplot(data = j_hare_weights,
        aes(x = sex, y = weight)) +
-  geom_beeswarm(aes(color = sex),
+  geom_beeswarm(aes(color = sex),  #add a beeswarm plot in the first layer of the graph
                 size = 2,
                 alpha = 0.8) +
-  facet_wrap(~site_name) +
+  facet_wrap(~site_name) +    #wrap the data by study site
   theme_minimal() +
-  geom_boxplot(data = j_hare_weights, aes(x = sex, y = weight),
+  geom_boxplot(data = j_hare_weights, aes(x = sex, y = weight), #add a boxplot in the second layer of the graph
                size = 1,
                alpha = 0.1,
                color = "gray30") +
-  theme(legend.position = "none") +
+  theme(legend.position = "none") +  #remove the legend from the graph
   labs(x = "Sex",
        y = "Weight",
        title = "Variation in juvenile hare weights by sex and study site",
        caption = "Figure 2: Weight of juvenile hares caught in traps at three different sites along Bonanza Creek between 1999 and 2012.")
-
-
 ```
-Prior to running any statistical analyses, there is minimal variation between the mean weight and distribution of weight between sites. It looks like male juveniles may weigh more than female juvenile hares, which I examine statistically in the following sections. 
+
+
+Prior to running any statistical analyses, there is minimal variation between the mean weight between sites. It looks like male juveniles may weigh more than female juvenile hares, which I examine statistically in the following sections. 
 
 
 ## Juvenile weight comparison by sex
@@ -123,16 +126,16 @@ j_hare_weights_clean <- j_hare_weights %>%
   filter(!is.na(sex))
 
 #Create vectors for statistical tests
-hare_f <- j_hare_weights_clean %>%
+hare_f <- j_hare_weights_clean %>%   #create vector for weights of juvenile female hares
   filter(!is.na(sex)) %>%
   filter(sex == "f") %>%
   pull(weight)
-hare_m <- j_hare_weights_clean %>%
+hare_m <- j_hare_weights_clean %>%   #create vector for weights of juvenile male hares
   filter(!is.na(sex)) %>%
   filter(sex == "m") %>%
   pull(weight)
 
-# Create table of summary statistics
+# Create data frame of summary statistics
 hare_weight_table <- j_hare_weights_clean %>% 
   group_by(sex) %>% 
   summarize(
@@ -141,19 +144,32 @@ hare_weight_table <- j_hare_weights_clean %>%
     n = n()
   )
 
-# Format table useing kalbeExtra
-hare_weight_table %>% 
-  kable(col.names = c("Sex", "Mean Weight", "Standard deviation", "Sample size")) %>% 
-  kable_styling(bootstrap_options = "striped", full_width = FALSE)
+# Make a histogram that shows the distribution of weights for both female and male juvenile hares
+ggplot(data = j_hare_weights_clean, aes(x = weight)) +  #
+  geom_histogram(bins = 20) +
+  facet_wrap(~sex)
 
-#Check for normality
+# Make a qq plot to check for normality
+ggplot(data = j_hare_weights_clean, aes(sample = weight)) + 
+  geom_qq() +
+  facet_wrap(~sex) #weights of both sexes are normally distributed
 
 # Run a t-test
-t.test(hare_f, hare_m)
+hare_ttest <- t.test(hare_f, hare_m)
 
 # Get the effect size: 
 hare_effsize <- cohen.d(hare_f, hare_m)
 ```
+
+```{r data table, , echo = FALSE, message = FALSE, warning = FALSE, table.align = "center"}
+# Format data frame as a table using kalbeExtra
+hare_weight_table %>% 
+  kable(col.names = c("Sex", "Mean Weight", "Standard Deviation", "Sample Size")) %>% 
+  kable_styling(bootstrap_options = "striped", 
+                full_width = FALSE)
+```
+
+Overall, male juvenile hares weigh more than female juvenile hares. The actual difference in means is `r hare_weight_table[1,1] - hare_weight_table[1,2]` and the percent diference is [PLACEHOLDER]. The difference in means is significant (F statistic = `r round(hare_ttest$statistic,2)`, p value = `r round(hare_ttest$p.value,2)`, p < 0.05) but the effect size is small (Cohen's *d* = `r round(hare_effsize$estimate,2)`).
 
 
 ## Relationship between juvenile weight & hind foot length
