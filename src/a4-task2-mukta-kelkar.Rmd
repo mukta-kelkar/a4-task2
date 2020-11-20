@@ -12,6 +12,7 @@ library(here)
 library(lubridate)
 library(kableExtra)
 library(effsize)
+library(ggbeeswarm)
 ```
 
 # Introduction
@@ -22,16 +23,16 @@ library(effsize)
 
 [PLACEHOLDER TEXT]
 
-```{r, message=FALSE}
+```{r read in data and do initial wrangling, include=FALSE}
 # Read in data
 bonanza_hares <- read.csv(here("data", "bonanza_hares.csv"))
 
-# Use filter function to chose only juvenille hares
-juvenille_hares <- bonanza_hares %>% 
+# Use filter function to chose only juvenile hares
+juvenile_hares <- bonanza_hares %>% 
   filter(age == "j")
 
 # Sort data by year
-hares_by_year <- juvenille_hares %>% 
+hares_by_year <- juvenile_hares %>% 
   mutate(mdy(date)) %>% 
   rename(date_form = "mdy(date)") %>% 
   mutate(year = year(date_form))
@@ -39,54 +40,83 @@ hares_by_year <- juvenille_hares %>%
 
 # Exploratory Findings
 
-## Annual Juvenille Hare Trap Counts
+## Annual Juvenile Hare Trap Counts
 
-```{r}
+```{r summarize data for juvenile hare counts, include=FALSE}
 # Count the total number of juvenile (age == "j") hare trappings during each year of the study
-juvenilles_per_year <- hares_by_year %>% 
+juveniles_per_year <- hares_by_year %>% 
   count(age, year)
 
-# Find summary statistics
-juvenille_summary <- juvenilles_per_year %>% 
-  #group_by(year) %>% 
+# Assess summary statistics
+summary(juveniles_per_year)
+
+# Find summary statistics for use in report out
+juvenile_summary <- juveniles_per_year %>% 
   summarise(
     mean_count = mean(n),
     median_count = median(n),
+    min_count = min(n),
+    max_count = max(n)
   )
-
-# Create a final visualization of counts by year
-ggplot(data = juvenilles_per_year, aes(x = year, y = n)) +
-  geom_col() +
-  labs(y = "Number of Juvenilles",
-       x = "Year",
-       title = "Number of juvenille bonanza hares per year",
-       caption = "Figure 1: weeeee") +
-  theme_minimal()
-
 ```
 
-## Juvenille Hare Weights
+```{r create column graph, echo = FALSE, message = FALSE, warning = FALSE, fig.align = "center"}
+# Create a final visualization of counts by year
+ggplot(data = juveniles_per_year, aes(x = year, y = n)) +
+  geom_col() +
+  labs(y = "Number of Juveniles",
+       x = "Year",
+       title = "Number of juvenile bonanza hares per year",
+       caption = "Figure 1: Juvenile Hares caught in traps along Bonanza Creek between 1999 and 2012") +
+  theme_minimal()
+```
 
-```{r, include=FALSE}
+
+Overall, it looks like the number of juvenile hares caught in traps has decreased with time. The median count is `r juvenile_summary$median_count` and the mean count is `r juvenile_summary$mean_count`. The minimum number of hares is `r juvenile_summary$min_count` in the year 2010 and the maximum number of hares is `r juvenile_summary$max_count` in the year 1999. One consideration to note when analyzing the data is that the count is impacted by effort (in other words, the number of days and number of traps in the study each year). A possible way to address this moving forward would be to divide the number of hares caught per year by the number of traps deployed per year. Then, instead of looking at number of hares per year, we can look at number of hares per trap per year. 
+
+
+## Juvenile Hare Weights
+
+```{r, include=FALSE, warning=FALSE, message = FALSE}
 # Create dataset that includes only variables age, sex, and site(grid)
-j_hare_weights <- juvenille_hares %>% 
+j_hare_weights <- juvenile_hares %>% 
   select("grid", "sex", "age", "weight") %>% 
-  group_by(grid)
+  group_by(grid) %>% 
+  mutate(site_name = case_when(
+    grid == "bonrip" ~ "Bonanza Riparian",
+  grid == "bonmat" ~ "Bonanza Mature",
+  grid == "bonbs" ~ "Bonanza Black Spruce"
+  ))
 
-ggplot(data = j_hare_weights, aes(x = sex, y = weight)) +
-  geom_boxplot(aes(color = grid)) +
+# View summary of data
+summary(j_hare_weights)
+
+# Create a boxplot
+ggplot(data = j_hare_weights,
+       aes(x = sex, y = weight)) +
+  geom_beeswarm(aes(color = sex),
+                size = 2,
+                alpha = 0.8) +
+  facet_wrap(~site_name) +
+  theme_minimal() +
+  geom_boxplot(data = j_hare_weights, aes(x = sex, y = weight),
+               size = 1,
+               alpha = 0.1,
+               color = "gray30") +
+  theme(legend.position = "none") +
   labs(x = "Sex",
        y = "Weight",
-       title = "Juvenille hare weights by gender",
-       caption = "Figure 2: woooooooo") +
-  theme_bw()
+       title = "Variation in juvenile hare weights by sex and study site",
+       caption = "Figure 2: Weight of juvenile hares caught in traps at three different sites along Bonanza Creek between 1999 and 2012.")
 
-summary(j_hare_weights)
+
 ```
+Prior to running any statistical analyses, there is minimal variation between the mean weight and distribution of weight between sites. It looks like male juveniles may weigh more than female juvenile hares, which I examine statistically in the following sections. 
 
-## Juvenille weight comparison by sex
 
-```{r}
+## Juvenile weight comparison by sex
+
+```{r, include = FALSE}
 # Take out NAs
 j_hare_weights_clean <- j_hare_weights %>%
   filter(!is.na(weight)) %>%
@@ -116,6 +146,8 @@ hare_weight_table %>%
   kable(col.names = c("Sex", "Mean Weight", "Standard deviation", "Sample size")) %>% 
   kable_styling(bootstrap_options = "striped", full_width = FALSE)
 
+#Check for normality
+
 # Run a t-test
 t.test(hare_f, hare_m)
 
@@ -127,11 +159,13 @@ hare_effsize <- cohen.d(hare_f, hare_m)
 ## Relationship between juvenile weight & hind foot length
 
 ```{r}
-j_weight_length <- juvenille_hares %>% 
+# Wrangle data to include only hind foot length and weight of juvenile hares. Then filer out the NA values for both hind food length and weight.
+j_weight_length <- juvenile_hares %>% 
   select(hindft, weight) %>% 
   filter(!is.na(weight)) %>%
   filter(!is.na(hindft))
 
+# Create a line graph that shows the relationship between hind food length and weight
 ggplot(data = j_weight_length, aes(x = hindft, y = weight)) +
   geom_point(size = 2) +
   geom_smooth(method = "lm",
